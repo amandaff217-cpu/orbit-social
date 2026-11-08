@@ -165,14 +165,211 @@ followersCount += (5..25).random()
 }
 }
         }
-        Text(number, fontWeight = FontWeight.Bold, fontSize = 18.sp); Text(label, color = Muted, fontSize = 11.sp) } }
+        commentTargetPost?.let { post ->
+            var newComment by remember { mutableStateOf("") }
+            AlertDialog(
+                onDismissRequest = { commentTargetPost = null }, containerColor = Panel,
+                title = { Text("Comentários • ${post.author}", color = Color.White, fontSize = 16.sp) },
+                text = {
+                    Column {
+                        val currentPost = posts.find { it.id == post.id } ?: post
+                        LazyColumn(Modifier.heightIn(max = 240.dp)) {
+                            items(currentPost.comments) { c ->
+                                Column(Modifier.padding(vertical = 6.dp)) {
+                                    Text(c.author, color = Lime, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(c.text, color = Color.White, fontSize = 13.sp)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(value = newComment, onValueChange = { newComment = it }, placeholder = { Text("Escreva um comentário...") }, modifier = Modifier.fillMaxWidth())
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val txt = newComment.trim()
+                        if (txt.isNotEmpty()) {
+                            posts = posts.map { if (it.id == post.id) it.copy(comments = it.comments + CommentItem(displayName, txt) + CommentItem(post.author, "Amei seu comentário! Me chama na DM depois 😉✨")) else it }
+                            followersCount += 15; newComment = ""
+                        }
+                    }) { Text("Enviar", color = Lime) }
+                },
+                dismissButton = { TextButton(onClick = { commentTargetPost = null }) { Text("Fechar", color = Muted) } }
+            )
+        }
+
+        if (composeOpen) {
+            val presetPhotos = listOf(
+                "Ensaio ✨" to "https://unsplash.com",
+                "Jantar VIP 🥂" to "https://unsplash.com",
+                "Show 🎤" to "https://unsplash.com"
+            )
+            AlertDialog(
+                onDismissRequest = { composeOpen = false }, containerColor = Panel,
+                title = { Text("Nova publicação (+Seguidores!)", color = Color.White, fontSize = 17.sp) },
+                text = {
+                    Column {
+                        OutlinedTextField(value = draftText, onValueChange = { draftText = it }, placeholder = { Text("Legenda da sua foto...") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                        Spacer(Modifier.height(10.dp))
+                        Row(Modifier.padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            presetPhotos.forEach { (label, url) ->
+                                FilterChip(selected = draftPhotoUrl == url, onClick = { draftPhotoUrl = url }, label = { Text(label, fontSize = 10.sp) })
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val newPost = SocialPost(System.nanoTime().toString(), displayName, "@estrela.orbit", true, draftText.trim().ifEmpty { "Mais um momento incrível por aqui ✨" }, draftPhotoUrl.ifEmpty { presetPhotos.first().second }, (120..450).random().toLong(), false, false, listOf(CommentItem("lucas.oficial", "Arrasou demais nessa foto! 😍"), CommentItem("orbitstars.fc", "ÍCONE!! Já salvamos aqui 💚")))
+                        posts = listOf(newPost) + posts; followersCount += (80..250).random(); draftText = ""; draftPhotoUrl = ""; composeOpen = false; tab = "Início"
+                    }) { Text("Publicar e Ganhar Fãs", color = Lime) }
+                },
+                dismissButton = { TextButton(onClick = { composeOpen = false }) { Text("Cancelar", color = Muted) } }
+            )
+        }
+    }
+}
+@Composable
+fun FeedScreen(posts: List<SocialPost>, onPro: () -> Unit, onLike: (SocialPost) -> Unit, onFollow: (SocialPost) -> Unit, onOpenComments: (SocialPost) -> Unit) {
+    LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        item {
+            Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(Lime, Sky)), RoundedCornerShape(18.dp)).clickable { onPro() }.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column { Text("Modo Celebridade & Romance ✨", color = Night, fontSize = 17.sp, fontWeight = FontWeight.Bold); Text("Publique fotos e converse na DM com IA", color = Night, fontSize = 12.sp) }
+                Text("→", color = Night, fontSize = 26.sp)
+            }
+        }
+        items(posts, key = { it.id }) { post ->
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
+                    Box(Modifier.size(42.dp).background(Brush.linearGradient(listOf(Lime, Sky)), CircleShape), contentAlignment = Alignment.Center) { Text(post.author.take(1).uppercase(), color = Night, fontWeight = FontWeight.Bold) }
+                    Column(Modifier.padding(start = 10.dp).weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(post.author, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            if (post.verified) Icon(Icons.Default.Verified, null, tint = Sky, modifier = Modifier.size(15.dp).padding(start = 4.dp))
+                        }
+                        Text(post.handle, color = Muted, fontSize = 11.sp)
+                    }
+                    OutlinedButton(onClick = { onFollow(post) }, shape = RoundedCornerShape(20.dp), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 2.dp), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (post.isFollowing) Panel else Lime, contentColor = if (post.isFollowing) Color.White else Night)) {
+                        Text(if (post.isFollowing) "Seguindo" else "Seguir", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                if (post.imageUrl != null) AsyncImage(model = post.imageUrl, contentDescription = post.text, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(14.dp)).background(Panel))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                    TextButton(onClick = { onLike(post) }) {
+                        Icon(if (post.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = if (post.isLiked) Color(0xFFFF4D6D) else Lime)
+                        Text(" ${post.likes}", color = Color.White)
+                    }
+                    TextButton(onClick = { onOpenComments(post) }) {
+                        Icon(Icons.Default.ChatBubbleOutline, null, tint = Color.White)
+                        Text(" ${post.comments.size} Comentar", color = Color.White)
+                    }
+                }
+                Text("${post.author}  ${post.text}", color = Color.White, fontSize = 13.sp)
+                if (post.comments.isNotEmpty()) Text("Ver todos os ${post.comments.size} comentários...", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp).clickable { onOpenComments(post) })
+                HorizontalDivider(Modifier.padding(top = 12.dp), color = Color(0xFF252B2C))
+            }
+        }
+    }
+}
+
+@Composable
+fun MessagesListScreen(contacts: List<AiContact>, onSelectContact: (AiContact) -> Unit) {
+    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { Text("Mensagens Diretas (IA)", fontSize = 24.sp, fontWeight = FontWeight.Bold); Text("Converse para viver um romance ou gerenciar sua fama", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp)) }
+        items(contacts) { contact ->
+            Surface(color = Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable { onSelectContact(contact) }) {
+                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(48.dp).background(if (contact.category == "Romance") Brush.linearGradient(listOf(Color(0xFFFF758F), Lime)) else Brush.linearGradient(listOf(Lime, Sky)), CircleShape), contentAlignment = Alignment.Center) { Text(contact.avatarLetter, color = Night, fontWeight = FontWeight.Black, fontSize = 18.sp) }
+                    Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) { Text(contact.name, fontWeight = FontWeight.Bold, fontSize = 15.sp); if (contact.verified) Icon(Icons.Default.Verified, null, tint = Sky, modifier = Modifier.size(14.dp).padding(start = 4.dp)) }
+                        Text(contact.role, color = Lime, fontSize = 11.sp)
+                        Text(contact.messages.lastOrNull()?.text ?: "", color = Muted, fontSize = 12.sp, maxLines = 1)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatDetailScreen(contact: AiContact, onBack: () -> Unit, onSendMessage: (String, String) -> Unit) {
+    var input by remember { mutableStateOf("") }; var isTyping by remember { mutableStateOf(false) }; val scope = rememberCoroutineScope()
+    Column(Modifier.fillMaxSize().padding(14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 10.dp)) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White) }
+            Column { Text(contact.name, fontWeight = FontWeight.Bold, fontSize = 17.sp); Text(if (isTyping) "digitando..." else contact.role, color = Lime, fontSize = 12.sp) }
+        }
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(contact.messages) { msg ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = if (msg.senderIsMe) Arrangement.End else Arrangement.Start) {
+                    Surface(color = if (msg.senderIsMe) Lime else Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.widthIn(max = 270.dp)) {
+                        Text(msg.text, color = if (msg.senderIsMe) Night else Color.White, fontSize = 14.sp, modifier = Modifier.padding(12.dp))
+                    }
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+            OutlinedTextField(value = input, onValueChange = { input = it }, placeholder = { Text("Escreva sua mensagem...") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(24.dp))
+            IconButton(onClick = {
+                val text = input.trim()
+                if (text.isNotEmpty() && !isTyping) { input = ""; isTyping = true; scope.launch { delay(900); val reply = generateAiReply(contact, text); isTyping = false; onSendMessage(text, reply) } }
+            }) { Icon(Icons.AutoMirrored.Filled.Send, null, tint = Lime) }
+        }
+    }
+}
+fun generateAiReply(contact: AiContact, userMessage: String): String {
+    val msg = userMessage.lowercase()
+    return if (contact.category == "Romance") {
+        when {
+            listOf("oi", "olá", "tudo bem", "como vai").any { it in msg } -> "Agora que você me mandou mensagem, meu dia ficou mil vezes melhor 🥰 O que você gosta de fazer quando quer relaxar?"
+            listOf("sair", "encontro", "jantar", "café", "ver").any { it in msg } -> "Eu estava torcendo para você fazer esse convite! Me busca às 20h? Prometo que vai ser uma noite inesquecível ✨🥂"
+            listOf("lindo", "linda", "gosto", "amo", "paixão", "beijo").any { it in msg } -> "Você sabe exatamente como deixar meu coração acelerado... 😍 Nunca senti uma conexão tão rápida com alguém aqui no Orbit."
+            else -> "Adoro o jeito que você conversa comigo 💕 Me conta mais sobre você... quero conhecer cada detalhe seu."
+        }
+    } else {
+        when {
+            listOf("contrato", "dinheiro", "marca", "aceito", "fechado").any { it in msg } -> "Excelente! Acabei de fechar o cachê VIP para você. Prepare-se porque seu nome vai estar nos trending topics hoje à noite! 🚀📸"
+            listOf("fã", "obrigado", "amo vocês", "show", "foto").any { it in msg } -> "GENTE OLHA ISSO!! Printamos sua resposta e postamos no fã-clube, você é a celebridade mais humilde e perfeita de todas! 😭💚✨"
+            else -> "Todo mundo na internet só fala de você hoje! Continua postando no feed que seus seguidores estão subindo sem parar 🔥★"
+        }
+    }
+}
+
+@Composable
+fun ExploreScreen(onSelectCategory: () -> Unit) {
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Text("Explorar", fontSize = 27.sp, fontWeight = FontWeight.Bold)
+        Text("Descubra romances, celebridades e tendências.", color = Muted, modifier = Modifier.padding(top = 5.dp, bottom = 20.dp))
+        listOf("Romance & Flertes 💖" to "Converse com crushes famosos na DM", "Fama & Paparazzi 📸" to "Feche contratos e ganhe seguidores", "Eventos VIP 🥂" to "Festas exclusivas do Orbit Social", "Fã-Clubes Oficial ★" to "Interaja com seus admiradores").forEach { (title, sub) ->
+            Surface(color = Panel, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).clickable { onSelectCategory() }) {
+                Column(Modifier.padding(16.dp)) { Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp); Text(sub, color = Muted, fontSize = 12.sp) }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileScreen(initialName: String, postCount: Int, followers: Int, following: Int, onSave: (String) -> Unit) {
+    var name by remember(initialName) { mutableStateOf(initialName) }
+    Column(Modifier.fillMaxSize().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(16.dp))
+        Box(Modifier.size(90.dp).background(Brush.linearGradient(listOf(Lime, Sky)), CircleShape), contentAlignment = Alignment.Center) { Text("★", color = Night, fontWeight = FontWeight.Black, fontSize = 34.sp) }
+        Text(initialName, fontSize = 21.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
+        Text("@estrela.orbit • Perfil Verificado", color = Sky, fontSize = 13.sp)
+        Row(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalArrangement = Arrangement.SpaceEvenly) { Stat(postCount.toString(), "Publicações"); Stat(followers.toString(), "Seguidores"); Stat(following.toString(), "Seguindo") }
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Seu nome artístico") }, modifier = Modifier.fillMaxWidth())
+        Button(onClick = { onSave(name) }, colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Night), modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) { Text("Salvar perfil") }
+    }
+}
+
+@Composable fun Stat(number: String, label: String) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(number, fontWeight = FontWeight.Bold, fontSize = 18.sp); Text(label, color = Muted, fontSize = 11.sp) } }
 @Composable fun SimpleScreen(title: String, body: String) { Column(Modifier.fillMaxSize().padding(22.dp)) { Text(title, fontSize = 27.sp, fontWeight = FontWeight.Bold); Text(body, color = Muted, modifier = Modifier.padding(top = 10.dp)) } }
 @Composable fun ProScreen(onBack: () -> Unit) {
-Column(Modifier.fillMaxSize().padding(20.dp)) {
-TextButton(onClick = onBack) { Text("← Voltar", color = Muted) }
-Box(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(Lime, Sky)), RoundedCornerShape(22.dp)).padding(22.dp)) {
-Column { Text("✦", fontSize = 35.sp, color = Night); Text("Orbit Pro", fontSize = 31.sp, fontWeight = FontWeight.Black, color = Night); Text("Fama ilimitada e encontros exclusivos.", color = Night) }
-}
-listOf("✓  Selo de celebridade verificado", "✓  Respostas prioritárias dos crushes na DM", "✓  Crescimento acelerado de fãs").forEach { Text(it, modifier = Modifier.padding(vertical = 13.dp), fontWeight = FontWeight.SemiBold) }
-}
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        TextButton(onClick = onBack) { Text("← Voltar", color = Muted) }
+        Box(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(Lime, Sky)), RoundedCornerShape(22.dp)).padding(22.dp)) {
+            Column { Text("✦", fontSize = 35.sp, color = Night); Text("Orbit Pro", fontSize = 31.sp, fontWeight = FontWeight.Black, color = Night); Text("Fama ilimitada e encontros exclusivos.", color = Night) }
+        }
+        listOf("✓  Selo de celebridade verificado", "✓  Respostas prioritárias dos crushes na DM", "✓  Crescimento acelerado de fãs").forEach { Text(it, modifier = Modifier.padding(vertical = 13.dp), fontWeight = FontWeight.SemiBold) }
+    }
 }
