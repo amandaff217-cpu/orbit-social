@@ -503,7 +503,6 @@ items(myPosts) { p ->
 NetImage(p.imageUrl, Modifier.aspectRatio(1f).background(Panel))
 }
 }
-}
     if (editOpen) {
         var newName by remember { mutableStateOf(name) }
         var newBio by remember { mutableStateOf(bio) }
