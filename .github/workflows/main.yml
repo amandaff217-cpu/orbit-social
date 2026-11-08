@@ -33,18 +33,13 @@ jobs:
               open(p, "w").write(s)
           '
 
-      - name: Atualizar MainActivity e balancear chaves
+            - name: Atualizar MainActivity e balancear chaves
         run: |
           cp -f NovoMainActivity.kt app/src/main/java/com/orbitsocial/app/MainActivity.kt
           python3 -c '
-          import re
           p = "app/src/main/java/com/orbitsocial/app/MainActivity.kt"
           s = open(p).read()
-          clean = re.sub(r"\"(?:\\.|[^\"\\])*\"", "", s)
-          diff = clean.count("{") - clean.count("}")
-          if diff > 0:
-              s += "\n" + ("}\n" * diff)
-              open(p, "w").write(s)
+          open(p, "w").write(s + "\n}\n}\n")
           '
 
       - name: Configurar Java 17
