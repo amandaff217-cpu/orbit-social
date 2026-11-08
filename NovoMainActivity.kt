@@ -165,10 +165,6 @@ chats = chats + (user.id to listOf(ChatMessage(senderIsMe = false, text = opener
 activeChatUser = user
 tab = "DM"
     }
-    ---
-
-#### Parte 2 (Estrutura Visual, Feed estilo Instagram, Stories e Explorar)
-```kotlin
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Lime, onPrimary = Night, onBackground = Color.White, onSurface = Color.White)) {
         Scaffold(
             containerColor = Night,
