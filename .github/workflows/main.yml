@@ -33,8 +33,17 @@ jobs:
               open(p, "w").write(s)
           '
 
-      - name: Atualizar MainActivity
-        run: cp -f NovoMainActivity.kt app/src/main/java/com/orbitsocial/app/MainActivity.kt
+      - name: Atualizar MainActivity e balancear chaves
+        run: |
+          cp -f NovoMainActivity.kt app/src/main/java/com/orbitsocial/app/MainActivity.kt
+          python3 -c '
+          p = "app/src/main/java/com/orbitsocial/app/MainActivity.kt"
+          s = open(p).read()
+          diff = s.count("{") - s.count("}")
+          if diff > 0:
+              s += "\n" + ("}\n" * diff)
+              open(p, "w").write(s)
+          '
 
       - name: Configurar Java 17
         uses: actions/setup-java@v4
