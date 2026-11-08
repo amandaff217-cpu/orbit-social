@@ -505,28 +505,28 @@ NetImage(p.imageUrl, Modifier.aspectRatio(1f).background(Panel))
 }
 }
 }
-if (editOpen) {
-var newName by remember { mutableStateOf(name) }
-var newBio by remember { mutableStateOf(bio) }
-AlertDialog(
-onDismissRequest = { editOpen = false }, containerColor = Panel,
-title = { Text("Editar Perfil", color = Color.White) },
-text = {
-Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-OutlinedTextField(value = newName, onValueChange = { newName = it }, label = { Text("Nome") })
-OutlinedTextField(value = newBio, onValueChange = { newBio = it }, label = { Text("Biografia") })
+    if (editOpen) {
+        var newName by remember { mutableStateOf(name) }
+        var newBio by remember { mutableStateOf(bio) }
+        AlertDialog(
+            onDismissRequest = { editOpen = false },
+            containerColor = Panel,
+            title = { Text("Editar Perfil", color = Color.White) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = newName, onValueChange = { newName = it }, label = { Text("Nome") })
+                    OutlinedTextField(value = newBio, onValueChange = { newBio = it }, label = { Text("Biografia") })
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onUpdateProfile(newName, newBio)
+                    editOpen = false
+                }) { Text("Salvar", color = Lime) }
+            },
+            dismissButton = {
+                TextButton(onClick = { editOpen = false }) { Text("Cancelar", color = Muted) }
+            }
+        )
+    }
 }
-},
-confirmButton = {
-TextButton(onClick = {
-onUpdateProfile(newName, newBio)
-editOpen = false
-}) { Text("Salvar", color = Lime) }
-},
-dismissButton = {
-TextButton(onClick = { editOpen = false }) { Text("Cancelar", color = Muted) }
-}
-)
-}
-        }
-        
