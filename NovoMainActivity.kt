@@ -51,7 +51,7 @@ data class IaCharacter(
     val profilePicUrl: String,
     val country: String,
     val age: Int,
-    var relationshipLevel: Int = 0, // 0=Conhecido, 1=Amigo, 2=Crush, 3=Namorando
+    var relationshipLevel: Int = 0,
     var statusText: String = "Online"
 )
 
@@ -84,13 +84,13 @@ data class MyPostGame(
 )
 
 object AiWorldGenerator {
-    private val firstNames = mutableListOf("Yuki", "Kofi", "Aanya", "Mateo", "Zuri", "Chloe", "Hans", "Ji-Woo", "Svetlana", "Aisha", "Pedro", "Amara", "Mei", "Liam", "Elena", "Tariq", "Malik", "Kiara", "Sora")
-    private val lastNames = mutableListOf("Tanaka", "Mensah", "Sharma", "Rodriguez", "Okoro", "Smith", "Müller", "Kim", "Ivanova", "Diallo", "Silva", "Diop", "Chen")
+    private val firstNames = listOf("Yuki", "Kofi", "Aanya", "Mateo", "Zuri", "Chloe", "Hans", "Ji-Woo", "Svetlana", "Aisha", "Pedro", "Amara", "Mei", "Liam", "Elena", "Tariq", "Malik", "Kiara")
+    private val lastNames = listOf("Tanaka", "Mensah", "Sharma", "Rodriguez", "Okoro", "Smith", "Müller", "Kim", "Ivanova", "Diallo", "Silva", "Diop", "Chen")
     private val countries = listOf("Japão", "Gana", "Índia", "México", "Nigéria", "Estados Unidos", "Alemanha", "Coreia do Sul", "Rússia", "Brasil", "França", "Itália")
     private val bios = listOf("International Model ✨ Fashion & Travel", "Living life couture 🌌 Creator", "Artist & Songwriter 🎸 Booking via DM", "Fitness lifestyle and high fashion 🧘")
     private val statuses = listOf("Online", "Em ensaio 📸", "Viajando ✈️", "No camarim 💄", "Online")
 
-    // Links de imagens reais e estéticas de modelos profissionais do Unsplash
+    // Forçando links HTTPS seguros diretos do Unsplash CDN para carregar perfeitamente no Android
     private val modelImages = listOf(
         "https://unsplash.com",
         "https://unsplash.com",
@@ -106,8 +106,8 @@ object AiWorldGenerator {
     private val phrasesComments = listOf("Ficou incrível! 🔥", "Perfeição existe 😍", "Maravilhosa essa foto!", "Top demais 👑", "Que vibe ótima ✨", "Sensacional!")
 
     fun createRandomCharacter(): IaCharacter {
-        val fName = if (firstNames.isNotEmpty()) firstNames.random() else "Model"
-        val lName = if (lastNames.isNotEmpty()) lastNames.random() else "Agency"
+        val fName = firstNames.random()
+        val lName = lastNames.random()
         val imgUrl = modelImages.random()
         return IaCharacter(
             name = "$fName $lName",
@@ -163,14 +163,12 @@ fun OrbitSocialApp() {
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf("Feed") }
     
-    // Perfil do Jogador
     var myName by remember { mutableStateOf("Seu Nome") }
     var myHandle by remember { mutableStateOf("@seu.perfil") }
     var myBio by remember { mutableStateOf("Modelo e Influenciador digital em ascensão 📸🚀") }
     val myAvatarUrl = "https://unsplash.com"
     var editOpen by remember { mutableStateOf(false) }
 
-    // Suas postagens no jogo
     var myPostsList by remember {
         mutableStateOf(
             mutableListOf(
@@ -195,10 +193,9 @@ fun OrbitSocialApp() {
     var currentTypedMessage by remember { mutableStateOf("") }
     var selectedProfileCharacter by remember { mutableStateOf<IaCharacter?>(null) }
 
-    // Sistema automatizado: Modelos curtem e comentam suas fotos com o tempo
     LaunchedEffect(Unit) {
         while (true) {
-            delay(10000) // A cada 10 segundos o engajamento acontece
+            delay(10000)
             if (myPostsList.isNotEmpty() && infiniteDiscoverList.isNotEmpty()) {
                 val chosenPost = myPostsList.random()
                 val interactingModel = infiniteDiscoverList.random()
@@ -313,7 +310,6 @@ Text(char.name.split(" ").firstOrNull() ?: "", color = Color.White, fontSize = 1
 }
 }
 }
-// Mostra os seus posts criados no topo do feed para você ver a interação!
 items(myPostsList) { myPost ->
 Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
 Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -477,7 +473,6 @@ NetImage(myPostsList.first().imageUrl, modifier = Modifier.fillMaxWidth().height
 }
 }
 }
-// Modal de comentários nas suas fotos
 commentMyPostModalId?.let { myPostId ->
 val activeMyPost = myPostsList.firstOrNull { it.id == myPostId }
 activeMyPost?.let { post ->
@@ -506,7 +501,6 @@ confirmButton = { TextButton(onClick = { commentMyPostModalId = null }) { Text("
 )
 }
 }
-// Modal comum de comentários nos posts alheios
 commentModalPostId?.let { postId ->
 val activePost = posts.firstOrNull { it.id == postId }
 activePost?.let { post ->
