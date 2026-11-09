@@ -36,7 +36,6 @@ jobs:
       - name: Atualizar MainActivity e fechar chaves
         run: |
           cp -f NovoMainActivity.kt app/src/main/java/com/orbitsocial/app/MainActivity.kt
-          printf "\n}\n}\n" >> app/src/main/java/com/orbitsocial/app/MainActivity.kt
 
       - name: Configurar Java 17
         uses: actions/setup-java@v4
