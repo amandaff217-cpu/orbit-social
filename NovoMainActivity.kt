@@ -528,3 +528,5 @@ NetImage(p.imageUrl, Modifier.aspectRatio(1f).background(Panel))
         )
     }
 }
+            }
+        
