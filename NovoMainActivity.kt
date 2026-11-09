@@ -488,45 +488,162 @@ fun InstaFeedScreen(
         items(posts, key = { it.id }) { post ->
             val person = people.find { it.id == post.userId }
             Column {
-                color = Lime, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
-OutlinedButton(onClick = { editOpen = true }, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), shape = RoundedCornerShape(10.dp)) {
-Text("Editar perfil", color = Color.White)
-}
-HorizontalDivider(color = Color(0xFF202627))
-if (myPosts.isEmpty()) {
-Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-Text("Você ainda não publicou fotos.\nToque em 'Criar' abaixo para começar do zero!", color = Muted, fontSize = 13.sp)
-}
-} else {
-LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.fillMaxSize().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-items(myPosts) { p ->
-NetImage(p.imageUrl, Modifier.aspectRatio(1f).background(Panel))
-}
-}
-    if (editOpen) {
-        var newName by remember { mutableStateOf(name) }
-        var newBio by remember { mutableStateOf(bio) }
-        AlertDialog(
-            onDismissRequest = { editOpen = false },
-            containerColor = Panel,
-            title = { Text("Editar Perfil", color = Color.White) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = newName, onValueChange = { newName = it }, label = { Text("Nome") })
-                    OutlinedTextField(value = newBio, onValueChange = { newBio = it }, label = { Text("Biografia") })
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f).clickable { onOpenUserProfile(post.userId) }) {
+                            NetImage(post.avatarUrl, Modifier.size(38.dp).clip(CircleShape).background(Panel))
+                            Column(Modifier.padding(start = 10.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(post.handle.removePrefix("@"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    if (post.verified) Icon(Icons.Default.Verified, null, tint = Sky, modifier = Modifier.size(14.dp).padding(start = 4.dp))
+                                }
+                                Text(post.location, color = Muted, fontSize = 11.sp)
+                            }
+                        }
+                        if (post.userId != "me" && person != null) {
+                            TextButton(onClick = { onToggleFollow(person.id) }) {
+                                Text(if (person.isFollowing) "Seguindo" else "Seguir", color = if (person.isFollowing) Muted else Lime, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    NetImage(
+                        post.imageUrl,
+                        Modifier.fillMaxWidth().height(340.dp).background(Panel).pointerInput(post.id) {
+                            detectTapGestures(onDoubleTap = { if (!post.isLiked) onLike(post) })
+                        }
+                    )
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row {
+                            IconButton(onClick = { onLike(post) }) {
+                                Icon(if (post.isLiked) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder, null, tint = if (post.isLiked) Color(0xFFFF3B5C) else Color.White)
+                            }
+                            IconButton(onClick = { onOpenComments(post) }) {
+                                Icon(Icons.Outlined.ChatBubbleOutline, null, tint = Color.White)
+                            }
+                            IconButton(onClick = { onShareDm(post.userId) }) {
+                                Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White)
+                            }
+                        }
+                        IconButton(onClick = { onSavePost(post) }) {
+                            Icon(if (post.isSaved) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder, null, tint = if (post.isSaved) Lime else Color.White)
+                        }
+                    }
+                    Column(Modifier.padding(horizontal = 14.dp)) {
+                        Text("${post.likes} curtidas", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("${post.handle.removePrefix("@")}  ${post.caption}", fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp))
+                        if (post.comments.isNotEmpty()) {
+                            Text("Ver todos os ${post.comments.size} comentários", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp).clickable { onOpenComments(post) })
+                        }
+                    }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    onUpdateProfile(newName, newBio)
-                    editOpen = false
-                }) { Text("Salvar", color = Lime) }
-            },
-            dismissButton = {
-                TextButton(onClick = { editOpen = false }) { Text("Cancelar", color = Muted) }
             }
-        )
+        }
     }
 }
+
+@Composable
+fun InstaExploreScreen(people: List<UserProfile>, onOpenUserProfile: (UserProfile) -> Unit, onToggleFollow: (String) -> Unit, onMessageUser: (UserProfile) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    val filtered = people.filter { it.name.contains(query, ignoreCase = true) || it.handle.contains(query, ignoreCase = true) || it.category.contains(query, ignoreCase = true) }
+
+    LazyColumn(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item {
+            OutlinedTextField(value = query, onValueChange = { query = it }, placeholder = { Text("Pesquisar pessoas, romance ou fama...") }, leadingIcon = { Icon(Icons.Default.Search, null, tint = Muted) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp))
+            Text("Toque em qualquer pessoa para abrir o perfil (${filtered.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+        }
+        items(filtered) { user ->
+            Surface(color = Panel, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().clickable { onOpenUserProfile(user) }) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    NetImage(user.avatarUrl, Modifier.size(50.dp).clip(CircleShape))
+                    Column(Modifier.padding(start = 10.dp).weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(user.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            if (user.verified) Icon(Icons.Default.Verified, null, tint = Sky, modifier = Modifier.size(14.dp).padding(start = 4.dp))
+                        }
+                        Text("${user.handle} • ${user.followersLabel} fãs", color = Lime, fontSize = 11.sp)
+                        Text(user.bio, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Button(onClick = { onToggleFollow(user.id) }, colors = ButtonDefaults.buttonColors(containerColor = if (user.isFollowing) Color(0xFF2B3234) else Lime, contentColor = if (user.isFollowing) Color.White else Night), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp), modifier = Modifier.height(30.dp)) {
+                            Text(if (user.isFollowing) "Seguindo" else "Seguir", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Text("DM", color = Sky, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp).clickable { onMessageUser(user) })
+                    }
+                }
             }
-        
+        }
+    }
+}
+
+@Composable
+fun DirectInboxScreen(people: List<UserProfile>, chats: Map<String, List<ChatMessage>>, onSelectUser: (UserProfile) -> Unit) {
+    LazyColumn(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item {
+            Text("Mensagens (Direct)", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Toque em qualquer perfil para iniciar um romance ou parceria", color = Muted, fontSize = 12.sp)
+        }
+        items(people) { user ->
+            val lastMsg = chats[user.id]?.lastOrNull()?.text ?: "Toque para enviar uma mensagem..."
+            Surface(color = Panel, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().clickable { onSelectUser(user) }) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    NetImage(user.avatarUrl, Modifier.size(50.dp).clip(CircleShape))
+                    Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(user.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            if (user.verified) Icon(Icons.Default.Verified, null, tint = Sky, modifier = Modifier.size(14.dp).padding(start = 4.dp))
+                        }
+                        Text(user.category, color = Lime, fontSize = 11.sp)
+                        Text(lastMsg, color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatDetailScreen(user: UserProfile, messages: List<ChatMessage>, onBack: () -> Unit, onOpenProfile: () -> Unit, onSend: (String, String) -> Unit) {
+    var input by remember { mutableStateOf("") }
+    var typing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    Column(Modifier.fillMaxSize().padding(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White) }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onOpenProfile() }) {
+                NetImage(user.avatarUrl, Modifier.size(36.dp).clip(CircleShape))
+                Column(Modifier.padding(start = 10.dp)) {
+                    Text(user.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(if (typing) "digitando..." else "${user.handle} • ver perfil", color = Lime, fontSize = 11.sp)
+                }
+            }
+        }
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(messages) { msg ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = if (msg.senderIsMe) Arrangement.End else Arrangement.Start) {
+                    Surface(color = if (msg.senderIsMe) Lime else Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.widthIn(max = 260.dp)) {
+                        Text(msg.text, color = if (msg.senderIsMe) Night else Color.White, fontSize = 14.sp, modifier = Modifier.padding(12.dp))
+                    }
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+if (myPosts.isEmpty()) {
+Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Você ainda não publicou fotos.\nToque em 'Criar' abaixo para começar do zero!", color = Muted, fontSize = 13.sp) }
+} else {
+LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.fillMaxSize().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+items(myPosts) { p -> NetImage(p.imageUrl, Modifier.aspectRatio(1f).background(Panel)) }
+}
+}
+if (editOpen) {
+var newName by remember { mutableStateOf(name) }
+var newBio by remember { mutableStateOf(bio) }
+AlertDialog(
+onDismissRequest = { editOpen = false }, containerColor = Panel,
+title = { Text("Editar Perfil", color = Color.White) },
+text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedTextField(value = newName, onValueChange = { newName = it }, label = { Text("Nome") }); OutlinedTextField(value = newBio, onValueChange = { newBio = it }, label = { Text("Biografia") }) } },
+confirmButton = { TextButton(onClick = { onUpdateProfile(newName, newBio); editOpen = false }) { Text("Salvar", color = Lime) } },
+dismissButton = { TextButton(onClick = { editOpen = false }) { Text("Cancelar", color = Muted) } }
+)
+}
+}
+    }
