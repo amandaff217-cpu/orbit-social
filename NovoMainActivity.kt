@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.delay
@@ -51,6 +52,8 @@ data class IaCharacter(
     val profilePicUrl: String,
     val country: String,
     val age: Int,
+    val initialFollowers: Int,
+    val initialFollowing: Int,
     var relationshipLevel: Int = 0,
     var statusText: String = "Online"
 )
@@ -90,7 +93,6 @@ object AiWorldGenerator {
     private val bios = listOf("International Model ✨ Fashion & Travel", "Living life couture 🌌 Creator", "Artist & Songwriter 🎸 Booking via DM", "Fitness lifestyle and high fashion 🧘")
     private val statuses = listOf("Online", "Em ensaio 📸", "Viajando ✈️", "No camarim 💄", "Online")
 
-    // Links alternativos ultra estáveis e otimizados com parâmetros de tamanho fixo do Unsplash para evitar erros de renderização
     private val modelImages = listOf(
         "https://unsplash.com",
         "https://unsplash.com",
@@ -117,6 +119,8 @@ object AiWorldGenerator {
             profilePicUrl = imgUrl,
             country = countries.random(),
             age = (21..35).random(),
+            initialFollowers = (15000..950000).random(),
+            initialFollowing = (100..900).random(),
             statusText = statuses.random()
         )
     }
@@ -147,15 +151,20 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NetImage(url: String, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop) {
-    // Adicionado fallback estético cinza-escuro com animação suave para sumir o fundo preto caso a conexão de rede oscile
-    AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
+    val context = LocalContext.current
+    val request = remember(url) {
+        ImageRequest.Builder(context)
             .data(url)
             .crossfade(true)
-            .build(),
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .build()
+    }
+    AsyncImage(
+        model = request,
         contentDescription = null,
         contentScale = contentScale,
-        modifier = modifier.background(Color(0xFF1A1A1A))
+        modifier = modifier.background(Color(0xFF1E1E1E))
     )
 }
 
@@ -235,14 +244,21 @@ Spacer(modifier = Modifier.height(16.dp))
 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
 NetImage(char.avatarUrl, modifier = Modifier.size(80.dp).clip(CircleShape).border(1.5.dp, AccentBlue, CircleShape))
 Spacer(modifier = Modifier.width(24.dp))
-Column {
-Text("${char.age} anos • ${char.statusText}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-Text(char.country, color = Muted, fontSize = 13.sp)
+Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly) {
+Column(horizontalAlignment = Alignment.CenterHorizontally) {
+Text("${char.initialFollowers}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+Text("Seguidores", color = Muted, fontSize = 11.sp)
+}
+Column(horizontalAlignment = Alignment.CenterHorizontally) {
+Text("${char.initialFollowing}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+Text("Seguindo", color = Muted, fontSize = 11.sp)
+}
 }
 }
 Spacer(modifier = Modifier.height(12.dp))
 Text(char.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-Text(char.bio, color = Color.White, fontSize = 14.sp)
+Text("${char.age} anos • País: ${char.country} • Status: ${char.statusText}", color = Muted, fontSize = 13.sp)
+Text(char.bio, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(vertical = 4.dp))
 Spacer(modifier = Modifier.height(16.dp))
 Row(modifier = Modifier.fillMaxWidth()) {
 Button(
