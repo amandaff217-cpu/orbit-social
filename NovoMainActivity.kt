@@ -35,7 +35,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-// Cores Oficiais do Instagram Dark
 private val Night = Color(0xFF000000)
 private val Panel = Color(0xFF121212)
 private val BorderColor = Color(0xFF262626)
@@ -43,7 +42,6 @@ private val AccentBlue = Color(0xFF0095F6)
 private val Muted = Color(0xFFA8A8A8)
 private val StoryGradient = Brush.linearGradient(listOf(Color(0xFFF9CE34), Color(0xFFEE2A7B), Color(0xFF6228D7)))
 
-// Modelos de Dados Adaptados para Infinitas Variações
 data class IaCharacter(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
@@ -52,7 +50,7 @@ data class IaCharacter(
     val avatarUrl: String,
     val country: String,
     val ethnicity: String,
-    var relationshipLevel: Int = 0, // 0=Conhecido, 1=Amigo, 2=Crush, 3=Namorando
+    var relationshipLevel: Int = 0,
     var isFollowingMe: Boolean = false
 )
 
@@ -76,14 +74,11 @@ data class DirectMessage(
     val attachedImageUrl: String? = null
 )
 
-// Gerador Randômico Global de Pessoas (Global AI Generator)
 object AiWorldGenerator {
     private val firstNames = listOf("Yuki", "Kofi", "Aanya", "Mateo", "Zuri", "Chloe", "Hans", "Ji-Woo", "Svetlana", "Aisha", "Pedro", "Amara", "Mei", "Liam", "Elena", "Tariq")
     private val lastNames = listOf("Tanaka", "Mensah", "Sharma", "Rodriguez", "Okoro", "Smith", "Müller", "Kim", "Ivanova", "Diallo", "Silva", "Diop", "Chen", "Johnson", "García", "Khan")
     private val countries = listOf("Japão 🇯🇵", "Gana 🇬🇭", "Índia 🇮🇳", "México 🇲🇽", "Nigéria 🇳🇬", "EUA 🇺🇸", "Alemanha 🇩🇪", "Coreia do Sul 🇰🇷", "Rússia 🇷🇺", "Senegal 🇸🇳", "Brasil 🇧🇷", "França 🇫🇷", "China 🇨🇳")
     private val bios = listOf("Model & Creator ✨ Travel lover", "Living life one photo at a time 🌌", "Singer/Songwriter 🎸 Stream my single!", "Fitness & Health Coach 🧘‍♂️", "Digital art & tech 🦾", "Actor based in the city 🎬")
-    
-    // IDs de imagens reais do Unsplash cobrindo ampla diversidade étnica
     private val avatarIds = listOf(1025, 1012, 1062, 1084, 153, 177, 237, 338, 342, 365, 433, 447, 524, 532, 538, 646)
 
     fun createRandomCharacter(): IaCharacter {
@@ -136,22 +131,18 @@ fun OrbitSocialApp() {
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf("Feed") }
     
-    // Perfil do Jogador
     var myName by remember { mutableStateOf("Seu Nome") }
     var myHandle by remember { mutableStateOf("@seu.perfil") }
     var myBio by remember { mutableStateOf("Criando conexões globais no Orbitocial 🌍🚀") }
     var editOpen by remember { mutableStateOf(false) }
 
-    // Listas do Sistema de Relacionamento (Seguidores / Seguindo)
     var followingList by remember { mutableStateOf(mutableListOf<IaCharacter>()) }
     var followersList by remember { mutableStateOf(mutableListOf<IaCharacter>()) }
-    var viewListType by remember { mutableStateOf("") } // "Seguidores" ou "Seguindo" ou ""
+    var viewListType by remember { mutableStateOf("") } 
 
-    // Geração Inicial Infinita (Popula o feed e o explorar instantaneamente)
     var infiniteDiscoverList by remember { mutableStateOf(List(15) { AiWorldGenerator.createRandomCharacter() }) }
     var posts by remember { mutableStateOf(infiniteDiscoverList.take(6).map { AiWorldGenerator.createPostForCharacter(it) }) }
 
-    // Comentários e Conversas Ativas
     var commentModalPostId by remember { mutableStateOf<String?>(null) }
     var typedCommentText by remember { mutableStateOf("") }
     
@@ -159,14 +150,12 @@ fun OrbitSocialApp() {
     var chatMessagesMap by remember { mutableStateOf(mapOf<String, List<DirectMessage>>()) }
     var currentTypedMessage by remember { mutableStateOf("") }
 
-    // Loop passivo de ganho de seguidores baseado no seu engajamento
     LaunchedEffect(Unit) {
         while (true) {
             delay(12000)
             if ((1..100).random() > 40) {
                 val newFan = AiWorldGenerator.createRandomCharacter().copy(isFollowingMe = true)
                 followersList.add(newFan)
-                // Adiciona notificação implícita ou coloca ele para interagir no seu chat futuramente
             }
         }
     }
@@ -184,7 +173,6 @@ fun OrbitSocialApp() {
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues).fillMaxSize().background(Night)) {
             
-            // Verificação de Listas Auxiliares de Seguidores/Seguindo dentro do perfil
             if (viewListType.isNotEmpty()) {
                 val activeList = if (viewListType == "Seguidores") followersList else followingList
                 Column(modifier = Modifier.fillMaxSize().background(Night).padding(16.dp)) {
@@ -199,20 +187,19 @@ fun OrbitSocialApp() {
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(item.name, color = Color.White, fontWeight = FontWeight.Bold)
-Text(item.country, color = Muted, fontSize = 12.sp)
-}
-Button(
-onClick = {
-if (viewListType == "Seguindo") {
-followingList.remove(item)
-infiniteDiscoverList = infiniteDiscoverList.map { if (it.id == item.id) it.copy(statusText = "Seguir") else it }
-} else {
-followersList.remove(item)
-}
-viewListType = viewListType // Força recomposição simples
-},
-colors = ButtonDefaults.buttonColors(containerColor = BorderColor)
-) {
+                                    Text(item.country, color = Muted, fontSize = 12.sp)
+                                }
+                                Button(
+                                    onClick = {
+                                        if (viewListType == "Seguindo") {
+                                            followingList.remove(item)
+                                        } else {
+                                            followersList.remove(item)
+                                        }
+                                        viewListType = viewListType 
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = BorderColor)
+                                ) {
 Text("Remover", color = Color.White, fontSize = 12.sp)
 }
 }
@@ -220,7 +207,6 @@ Text("Remover", color = Color.White, fontSize = 12.sp)
 }
 }
 } else {
-// Navegação Comum das Abas Principais
 when (tab) {
 "Feed" -> LazyColumn(modifier = Modifier.fillMaxSize()) {
 item {
@@ -236,7 +222,7 @@ Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.p
 Box(modifier = Modifier.size(64.dp).clip(CircleShape).background(StoryGradient).padding(2.dp)) {
 NetImage(char.avatarUrl, modifier = Modifier.fillMaxSize().clip(CircleShape))
 }
-Text(char.name.split(" ")[0], color = Color.White, fontSize = 11.sp, maxLines = 1)
+Text(char.name.split(" ").firstOrNull() ?: "", color = Color.White, fontSize = 11.sp, maxLines = 1)
 }
 }
 }
@@ -319,7 +305,7 @@ modifier = Modifier.fillMaxWidth().clickable { activeChatCharacterId = char.id }
 Box(modifier = Modifier.size(46.dp).clip(CircleShape).border(2.dp, if (activeChatCharacterId == char.id) AccentBlue else Color.Transparent, CircleShape)) {
 NetImage(char.avatarUrl, modifier = Modifier.fillMaxSize())
 }
-Text(char.name.split(" ")[0], color = Color.White, fontSize = 11.sp, maxLines = 1)
+Text(char.name.split(" ").firstOrNull() ?: "", color = Color.White, fontSize = 11.sp, maxLines = 1)
 }
 }
 }
@@ -395,7 +381,6 @@ Text("Editar Perfil", color = Color.White)
 }
 }
 }
-// Modal Auxiliar para Comentários estilo Instagram
 commentModalPostId?.let { postId ->
 val activePost = posts.firstOrNull { it.id == postId }
 activePost?.let { post ->
