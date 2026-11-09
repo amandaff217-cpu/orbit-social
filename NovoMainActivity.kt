@@ -51,8 +51,8 @@ data class IaCharacter(
     val profilePicUrl: String,
     val country: String,
     val age: Int,
-    var relationshipLevel: Int = 0,
-    var isFollowingMe: Boolean = false
+    var relationshipLevel: Int = 0, // 0=Conhecido, 1=Amigo, 2=Crush, 3=Namorando
+    var statusText: String = "Online"
 )
 
 data class CommentItem(val author: String, val text: String)
@@ -75,18 +75,23 @@ data class DirectMessage(
     val attachedImageUrl: String? = null
 )
 
-// Gerador Otimizado com Modelos Reais e Evitando Nomes Repetidos
+data class MyPostGame(
+    val id: String = UUID.randomUUID().toString(),
+    val caption: String,
+    val imageUrl: String,
+    var likesCount: Int,
+    val comments: MutableList<CommentItem> = mutableListOf()
+)
+
 object AiWorldGenerator {
-    private val firstNames = mutableListOf("Yuki", "Kofi", "Aanya", "Mateo", "Zuri", "Chloe", "Hans", "Ji-Woo", "Svetlana", "Aisha", "Pedro", "Amara", "Mei", "Liam", "Elena", "Tariq", "Malik", "Kiara", "Sora", "Dante", "Naomi", "Alessia", "Omar")
-    private val lastNames = mutableListOf("Tanaka", "Mensah", "Sharma", "Rodriguez", "Okoro", "Smith", "Müller", "Kim", "Ivanova", "Diallo", "Silva", "Diop", "Chen", "Johnson", "García", "Khan", "Russo", "Park", "Washington")
-    private val countries = listOf("Japão", "Gana", "Índia", "México", "Nigéria", "Estados Unidos", "Alemanha", "Coreia do Sul", "Rússia", "Senegal", "Brasil", "França", "China", "Itália")
-    private val bios = listOf("International Model ✨ Fashion & Travel", "Living life couture 🌌 Creator", "Artist & Songwriter 🎸 Booking via DM", "Fitness lifestyle and high fashion 🧘", "Digital creator & creative director 🦾", "Actor & Dreamer 🎬 Catwalk enthusiast")
-    
-    // Links diretos e estáveis do Unsplash focando em retratos estéticos de modelos profissionais masculinos e femininos de várias etnias
+    private val firstNames = mutableListOf("Yuki", "Kofi", "Aanya", "Mateo", "Zuri", "Chloe", "Hans", "Ji-Woo", "Svetlana", "Aisha", "Pedro", "Amara", "Mei", "Liam", "Elena", "Tariq", "Malik", "Kiara", "Sora")
+    private val lastNames = mutableListOf("Tanaka", "Mensah", "Sharma", "Rodriguez", "Okoro", "Smith", "Müller", "Kim", "Ivanova", "Diallo", "Silva", "Diop", "Chen")
+    private val countries = listOf("Japão", "Gana", "Índia", "México", "Nigéria", "Estados Unidos", "Alemanha", "Coreia do Sul", "Rússia", "Brasil", "França", "Itália")
+    private val bios = listOf("International Model ✨ Fashion & Travel", "Living life couture 🌌 Creator", "Artist & Songwriter 🎸 Booking via DM", "Fitness lifestyle and high fashion 🧘")
+    private val statuses = listOf("Online", "Em ensaio 📸", "Viajando ✈️", "No camarim 💄", "Online")
+
+    // Links de imagens reais e estéticas de modelos profissionais do Unsplash
     private val modelImages = listOf(
-        "https://unsplash.com",
-        "https://unsplash.com",
-        "https://unsplash.com",
         "https://unsplash.com",
         "https://unsplash.com",
         "https://unsplash.com",
@@ -98,9 +103,11 @@ object AiWorldGenerator {
         "https://unsplash.com"
     )
 
+    private val phrasesComments = listOf("Ficou incrível! 🔥", "Perfeição existe 😍", "Maravilhosa essa foto!", "Top demais 👑", "Que vibe ótima ✨", "Sensacional!")
+
     fun createRandomCharacter(): IaCharacter {
-        val fName = if (firstNames.isNotEmpty()) firstNames.removeAt((0 until firstNames.size).random()) else "Model_${UUID.randomUUID().toString().take(4)}"
-        val lName = if (lastNames.isNotEmpty()) lastNames.removeAt((0 until lastNames.size).random()) else "Agency"
+        val fName = if (firstNames.isNotEmpty()) firstNames.random() else "Model"
+        val lName = if (lastNames.isNotEmpty()) lastNames.random() else "Agency"
         val imgUrl = modelImages.random()
         return IaCharacter(
             name = "$fName $lName",
@@ -109,19 +116,24 @@ object AiWorldGenerator {
             avatarUrl = imgUrl,
             profilePicUrl = imgUrl,
             country = countries.random(),
-            age = (21..35).random()
+            age = (21..35).random(),
+            statusText = statuses.random()
         )
     }
 
     fun createPostForCharacter(char: IaCharacter): SocialPost {
         return SocialPost(
             character = char,
-            location = "${char.country}, Model Shoot",
-            caption = "Fresh portfolio update 🪐✨ Loving this aesthetic.",
+            location = "${char.country}, Studio Shoot",
+            caption = "New portfolio entry 🪐✨ Living the dream.",
             imageUrl = char.profilePicUrl,
-            likes = (1500..95000).random(),
-            comments = mutableListOf(CommentItem("@orbit.scout", "Stunning work! 🔥"))
+            likes = (1500..85000).random(),
+            comments = mutableListOf(CommentItem("@orbit.scout", "Stunning! 📸"))
         )
+    }
+
+    fun getRandomComment(handle: String): CommentItem {
+        return CommentItem(author = handle, text = phrasesComments.random())
     }
 }
 
@@ -136,7 +148,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NetImage(url: String, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop) {
     AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current).data(url).crossfade(true).build(),
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(url)
+            .crossfade(true)
+            .build(),
         contentDescription = null,
         contentScale = contentScale,
         modifier = modifier
@@ -148,10 +163,21 @@ fun OrbitSocialApp() {
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf("Feed") }
     
+    // Perfil do Jogador
     var myName by remember { mutableStateOf("Seu Nome") }
     var myHandle by remember { mutableStateOf("@seu.perfil") }
-    var myBio by remember { mutableStateOf("Criando conexões globais no Orbitocial 🌍🚀") }
+    var myBio by remember { mutableStateOf("Modelo e Influenciador digital em ascensão 📸🚀") }
+    val myAvatarUrl = "https://unsplash.com"
     var editOpen by remember { mutableStateOf(false) }
+
+    // Suas postagens no jogo
+    var myPostsList by remember {
+        mutableStateOf(
+            mutableListOf(
+                MyPostGame(caption = "Bastidores do meu novo ensaio fotográfico de hoje! ✨📸", imageUrl = "https://unsplash.com", likesCount = 240)
+            )
+        )
+    }
 
     var followingList by remember { mutableStateOf(mutableListOf<IaCharacter>()) }
     var followersList by remember { mutableStateOf(mutableListOf<IaCharacter>()) }
@@ -161,22 +187,27 @@ fun OrbitSocialApp() {
     var posts by remember { mutableStateOf(infiniteDiscoverList.take(6).map { AiWorldGenerator.createPostForCharacter(it) }) }
 
     var commentModalPostId by remember { mutableStateOf<String?>(null) }
+    var commentMyPostModalId by remember { mutableStateOf<String?>(null) }
     var typedCommentText by remember { mutableStateOf("") }
     
     var activeChatCharacterId by remember { mutableStateOf<String?>(null) }
     var chatMessagesMap by remember { mutableStateOf(mapOf<String, List<DirectMessage>>()) }
     var currentTypedMessage by remember { mutableStateOf("") }
-
-    // Estado para controlar a visualização do perfil detalhado de um criador de IA
     var selectedProfileCharacter by remember { mutableStateOf<IaCharacter?>(null) }
 
+    // Sistema automatizado: Modelos curtem e comentam suas fotos com o tempo
     LaunchedEffect(Unit) {
         while (true) {
-            delay(12000)
-            if ((1..100).random() > 40 && infiniteDiscoverList.isNotEmpty()) {
-                val newFan = infiniteDiscoverList.random().copy(isFollowingMe = true)
-                if (followersList.none { it.id == newFan.id }) {
-                    followersList.add(newFan)
+            delay(10000) // A cada 10 segundos o engajamento acontece
+            if (myPostsList.isNotEmpty() && infiniteDiscoverList.isNotEmpty()) {
+                val chosenPost = myPostsList.random()
+                val interactingModel = infiniteDiscoverList.random()
+                
+                chosenPost.likesCount += (5..25).random()
+                chosenPost.comments.add(AiWorldGenerator.getRandomComment(interactingModel.handle))
+                
+                if (followersList.none { it.id == interactingModel.id }) {
+                    followersList.add(interactingModel)
                 }
             }
         }
@@ -185,19 +216,17 @@ fun OrbitSocialApp() {
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = Night, modifier = Modifier.border(0.5.dp, BorderColor, RoundedCornerShape(0.dp))) {
-                NavigationBarItem(selected = tab == "Feed", onClick = { tab = "Feed"; viewListType = ""; selectedProfileCharacter = null }, icon = { Icon(Icons.Default.Home, null, tint = Color.White) }, label = { Text("Feed", color = Color.White, fontSize = 10.sp) })
-                NavigationBarItem(selected = tab == "Explorar", onClick = { tab = "Explorar"; viewListType = ""; selectedProfileCharacter = null }, icon = { Icon(Icons.Default.Search, null, tint = Color.White) }, label = { Text("Descobrir", color = Color.White, fontSize = 10.sp) })
-                NavigationBarItem(selected = tab == "Mensagens", onClick = { tab = "Mensagens"; viewListType = ""; selectedProfileCharacter = null }, icon = { Icon(Icons.Default.MailOutline, null, tint = Color.White) }, label = { Text("DMs", color = Color.White, fontSize = 10.sp) })
-                NavigationBarItem(selected = tab == "Perfil", onClick = { tab = "Perfil"; viewListType = ""; selectedProfileCharacter = null }, icon = { Icon(Icons.Default.Person, null, tint = Color.White) }, label = { Text("Perfil", color = Color.White, fontSize = 10.sp) })
-            }
-        },
-        containerColor = Night
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize().background(Night)) {
-            
-            // Visualização de Perfil de Outro Personagem (Mecânica solicitada)
-            if (selectedProfileCharacter != null) {
-                val char = selectedProfileCharacter!!
+                NavigationBarItem(selected = tab == "Feed", onClick = { tab = "Feed"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.Home, null, tint = Color.White) }, label = { Text("Feed", color = Color.White, fontSize = 10.sp) })
+                NavigationBarItem(selected = tab == "Explorar", onClick = { tab = "Explorar"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.Search, null, tint = Color.White) }, label = { Text("Descobrir", color = Color.White, fontSize = 10.sp) })
+NavigationBarItem(selected = tab == "Mensagens", onClick = { tab = "Mensagens"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.MailOutline, null, tint = Color.White) }, label = { Text("DMs", color = Color.White, fontSize = 10.sp) })
+NavigationBarItem(selected = tab == "Perfil", onClick = { tab = "Perfil"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.Person, null, tint = Color.White) }, label = { Text("Perfil", color = Color.White, fontSize = 10.sp) })
+}
+},
+containerColor = Night
+) { paddingValues ->
+Box(modifier = Modifier.padding(paddingValues).fillMaxSize().background(Night)) {
+if (selectedProfileCharacter != null) {
+val char = selectedProfileCharacter!!
 val isFollowing = followingList.any { it.id == char.id }
 Column(modifier = Modifier.fillMaxSize().background(Night).padding(16.dp)) {
 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -206,10 +235,10 @@ Text(char.handle, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight
 }
 Spacer(modifier = Modifier.height(16.dp))
 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-NetImage(char.avatarUrl, modifier = Modifier.size(80.dp).clip(CircleShape).border(1.5.dp, BorderColor, CircleShape))
+NetImage(char.avatarUrl, modifier = Modifier.size(80.dp).clip(CircleShape).border(1.5.dp, AccentBlue, CircleShape))
 Spacer(modifier = Modifier.width(24.dp))
 Column {
-Text("${char.age} anos", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+Text("${char.age} anos • ${char.statusText}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
 Text(char.country, color = Muted, fontSize = 13.sp)
 }
 }
@@ -219,14 +248,10 @@ Text(char.bio, color = Color.White, fontSize = 14.sp)
 Spacer(modifier = Modifier.height(16.dp))
 Row(modifier = Modifier.fillMaxWidth()) {
 Button(
-onClick = {
-if (isFollowing) followingList.remove(char) else followingList.add(char)
-},
+onClick = { if (isFollowing) followingList.remove(char) else followingList.add(char) },
 modifier = Modifier.weight(1f),
 colors = ButtonDefaults.buttonColors(containerColor = if (isFollowing) BorderColor else AccentBlue)
-) {
-Text(if (isFollowing) "Seguindo" else "Seguir", color = Color.White)
-}
+) { Text(if (isFollowing) "Seguindo" else "Seguir", color = Color.White) }
 Spacer(modifier = Modifier.width(8.dp))
 Button(
 onClick = {
@@ -237,14 +262,12 @@ selectedProfileCharacter = null
 },
 modifier = Modifier.weight(1f),
 colors = ButtonDefaults.buttonColors(containerColor = Panel)
-) {
-Text("Mensagem", color = Color.White)
-}
+) { Text("Mensagem", color = Color.White) }
 }
 Spacer(modifier = Modifier.height(16.dp))
 Text("Publicações", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
 Spacer(modifier = Modifier.height(8.dp))
-NetImage(char.profilePicUrl, modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(8.dp)))
+NetImage(char.profilePicUrl, modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(8.dp)))
 }
 } else if (viewListType.isNotEmpty()) {
 val activeList = if (viewListType == "Seguidores") followersList else followingList
@@ -262,12 +285,7 @@ Column(modifier = Modifier.weight(1f).clickable { selectedProfileCharacter = ite
 Text(item.name, color = Color.White, fontWeight = FontWeight.Bold)
 Text("${item.age} anos • ${item.country}", color = Muted, fontSize = 12.sp)
 }
-Button(
-onClick = {
-if (viewListType == "Seguindo") followingList.remove(item) else followersList.remove(item)
-},
-colors = ButtonDefaults.buttonColors(containerColor = BorderColor)
-) {
+Button(onClick = { if (viewListType == "Seguindo") followingList.remove(item) else followersList.remove(item) }, colors = ButtonDefaults.buttonColors(containerColor = BorderColor)) {
 Text("Remover", color = Color.White, fontSize = 12.sp)
 }
 }
@@ -295,6 +313,29 @@ Text(char.name.split(" ").firstOrNull() ?: "", color = Color.White, fontSize = 1
 }
 }
 }
+// Mostra os seus posts criados no topo do feed para você ver a interação!
+items(myPostsList) { myPost ->
+Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+NetImage(myAvatarUrl, modifier = Modifier.size(36.dp).clip(CircleShape))
+Spacer(modifier = Modifier.width(10.dp))
+Column {
+Text(myName, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+Text("Meu Perfil (Você)", color = AccentBlue, fontSize = 11.sp)
+}
+}
+NetImage(myPost.imageUrl, modifier = Modifier.fillMaxWidth().height(360.dp))
+Row(modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
+Icon(Icons.Default.Favorite, null, tint = Color.Red, modifier = Modifier.padding(8.dp))
+IconButton(onClick = { commentMyPostModalId = myPost.id }) {
+Icon(Icons.Default.Comment, null, tint = Color.White)
+}
+}
+Text("${myPost.likesCount} curtidas dos modelos", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
+Text(myPost.caption, color = Color.White, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp))
+Text("Ver todos os ${myPost.comments.size} comentários da IA", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp).clickable { commentMyPostModalId = myPost.id })
+}
+}
 items(posts) { post ->
 Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
 Row(modifier = Modifier.padding(8.dp).clickable { selectedProfileCharacter = post.character }, verticalAlignment = Alignment.CenterVertically) {
@@ -302,25 +343,18 @@ NetImage(post.character.avatarUrl, modifier = Modifier.size(36.dp).clip(CircleSh
 Spacer(modifier = Modifier.width(10.dp))
 Column {
 Text(post.character.name, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-Text("${post.character.age} anos • ${post.location}", color = Muted, fontSize = 11.sp)
+Text("${post.character.age} anos • ${post.character.statusText}", color = Muted, fontSize = 11.sp)
 }
 }
 NetImage(post.imageUrl, modifier = Modifier.fillMaxWidth().height(360.dp))
 Row(modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
-IconButton(onClick = {
-posts = posts.map { if (it.id == post.id) it.copy(isLiked = !it.isLiked, likes = if (it.isLiked) it.likes - 1 else it.likes + 1) else it }
-}) {
+IconButton(onClick = { posts = posts.map { if (it.id == post.id) it.copy(isLiked = !it.isLiked, likes = if (it.isLiked) it.likes - 1 else it.likes + 1) else it } }) {
 Icon(if (post.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = if (post.isLiked) Color.Red else Color.White)
 }
-IconButton(onClick = { commentModalPostId = post.id }) {
-Icon(Icons.Default.Comment, null, tint = Color.White)
-}
+IconButton(onClick = { commentModalPostId = post.id }) { Icon(Icons.Default.Comment, null, tint = Color.White) }
 }
 Text("${post.likes} curtidas", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
 Text(post.caption, color = Color.White, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp))
-if (post.comments.isNotEmpty()) {
-Text("Ver todos os ${post.comments.size} comentários", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp).clickable { commentModalPostId = post.id })
-}
 }
 }
 }
@@ -328,9 +362,7 @@ Text("Ver todos os ${post.comments.size} comentários", color = Muted, fontSize 
 item {
 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
 Text("Descobrir Modelos Globais", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-Text("Mais 🔄", color = AccentBlue, modifier = Modifier.clickable {
-infiniteDiscoverList = List(12) { AiWorldGenerator.createRandomCharacter() }
-})
+Text("Mais 🔄", color = AccentBlue, modifier = Modifier.clickable { infiniteDiscoverList = List(12) { AiWorldGenerator.createRandomCharacter() } })
 }
 Spacer(modifier = Modifier.height(12.dp))
 }
@@ -341,36 +373,28 @@ NetImage(char.avatarUrl, modifier = Modifier.size(50.dp).clip(CircleShape).click
 Spacer(modifier = Modifier.width(12.dp))
 Column(modifier = Modifier.weight(1f).clickable { selectedProfileCharacter = char }) {
 Text(char.name, color = Color.White, fontWeight = FontWeight.Bold)
-Text("${char.handle} • ${char.age} anos", color = Muted, fontSize = 12.sp)
+Text("${char.handle} • ${char.statusText}", color = Muted, fontSize = 12.sp)
 Text(char.bio, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 Button(
 onClick = {
-if (isFollowing) {
-followingList.removeAll { it.id == char.id }
-} else {
+if (isFollowing) followingList.removeAll { it.id == char.id }
+else {
 followingList.add(char)
-if (posts.none { it.character.id == char.id }) {
-posts = listOf(AiWorldGenerator.createPostForCharacter(char)) + posts
-}
+if (posts.none { it.character.id == char.id }) posts = listOf(AiWorldGenerator.createPostForCharacter(char)) + posts
 }
 },
 colors = ButtonDefaults.buttonColors(containerColor = if (isFollowing) BorderColor else AccentBlue),
 shape = RoundedCornerShape(8.dp)
-) {
-Text(if (isFollowing) "Seguindo" else "Seguir", color = Color.White, fontSize = 12.sp)
-}
+) { Text(if (isFollowing) "Seguindo" else "Seguir", color = Color.White, fontSize = 12.sp) }
 }
 }
 }
 "Mensagens" -> Row(modifier = Modifier.fillMaxSize()) {
 LazyColumn(modifier = Modifier.width(90.dp).fillMaxHeight().background(Panel).border(0.5.dp, BorderColor)) {
 items(followingList) { char ->
-Column(
-horizontalAlignment = Alignment.CenterHorizontally,
-modifier = Modifier.fillMaxWidth().clickable { activeChatCharacterId = char.id }.padding(vertical = 12.dp)
-) {
-Box(modifier = Modifier.size(46.dp).clip(CircleShape).border(2.dp, if (activeChatCharacterId == char.id) AccentBlue else Color.Transparent, CircleShape)) {
+Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().clickable { activeChatCharacterId = char.id }.padding(vertical = 12.dp)) {
+Box(modifier = Modifier.size(46.dp).clip(CircleShape).border(2.dp, if (activeChatCharacterId == char.id) AccentBlue else Color.Green, CircleShape)) {
 NetImage(char.avatarUrl, modifier = Modifier.fillMaxSize())
 }
 Text(char.name.split(" ").firstOrNull() ?: "", color = Color.White, fontSize = 11.sp, maxLines = 1)
@@ -379,10 +403,10 @@ Text(char.name.split(" ").firstOrNull() ?: "", color = Color.White, fontSize = 1
 }
 activeChatCharacterId?.let { targetId ->
 val activeChar = followingList.firstOrNull { it.id == targetId }
-val currentMessages = chatMessagesMap[targetId] ?: listOf(DirectMessage(senderIsMe = false, text = "Opa! Tudo bem? Vi seu perfil."))
+val currentMessages = chatMessagesMap[targetId] ?: listOf(DirectMessage(senderIsMe = false, text = "Opa! Vi suas fotos novas no feed, estão sensacionais!"))
 activeChar?.let { char ->
 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-Text(char.name, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(12.dp).clickable { selectedProfileCharacter = char })
+Text("${char.name} (${char.statusText})", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(12.dp).clickable { selectedProfileCharacter = char })
 LazyColumn(modifier = Modifier.weight(1f).padding(8.dp)) {
 items(currentMessages) { msg ->
 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = if (msg.senderIsMe) Alignment.CenterEnd else Alignment.CenterStart) {
@@ -390,9 +414,7 @@ Column {
 Box(modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(if (msg.senderIsMe) AccentBlue else Panel).padding(10.dp)) {
 Text(msg.text, color = Color.White, fontSize = 14.sp)
 }
-msg.attachedImageUrl?.let { url ->
-NetImage(url, modifier = Modifier.size(140.dp).padding(top = 4.dp).clip(RoundedCornerShape(8.dp)))
-}
+msg.attachedImageUrl?.let { url -> NetImage(url, modifier = Modifier.size(140.dp).padding(top = 4.dp).clip(RoundedCornerShape(8.dp))) }
 }
 }
 }
@@ -409,9 +431,9 @@ delay(2000)
 val finalLevel = (char.relationshipLevel + 1).coerceAtMost(3)
 char.relationshipLevel = finalLevel
 val reply = when(finalLevel) {
-2 -> DirectMessage(senderIsMe = false, text = "Nossa, adorei conversar contigo! Olha essa foto recente que fiz!", attachedImageUrl = char.avatarUrl)
-3 -> DirectMessage(senderIsMe = false, text = "Estou gostando muito de você... ❤️ Olha meu look exclusivo!", attachedImageUrl = char.profilePicUrl)
-else -> DirectMessage(senderIsMe = false, text = "Que incrível! Adoro trocar ideias.")
+2 -> DirectMessage(senderIsMe = false, text = "Olha essa foto profissional do meu book que terminei hoje!", attachedImageUrl = char.avatarUrl)
+3 -> DirectMessage(senderIsMe = false, text = "Adoro nosso papo ❤️ Olha o ensaio de hoje!", attachedImageUrl = char.profilePicUrl)
+else -> DirectMessage(senderIsMe = false, text = "Nossa, que legal!")
 }
 chatMessagesMap = chatMessagesMap + (targetId to (combined + reply))
 }
@@ -421,12 +443,12 @@ chatMessagesMap = chatMessagesMap + (targetId to (combined + reply))
 }
 }
 } ?: Box(modifier = Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-Text("Selecione alguém para conversar", color = Muted, fontSize = 13.sp)
+Text("Selecione um modelo online para conversar", color = Muted, fontSize = 13.sp)
 }
 }
 "Perfil" -> Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-Icon(Icons.Default.AccountCircle, null, tint = Color.Gray, modifier = Modifier.size(70.dp))
+NetImage(myAvatarUrl, modifier = Modifier.size(70.dp).clip(CircleShape).border(1.5.dp, BorderColor, CircleShape))
 Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly) {
 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { viewListType = "Seguidores" }) {
 Text("${followersList.size}", color = Color.White, fontWeight = FontWeight.Bold)
@@ -446,9 +468,45 @@ Spacer(modifier = Modifier.height(12.dp))
 Button(onClick = { editOpen = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Panel)) {
 Text("Editar Perfil", color = Color.White)
 }
+Spacer(modifier = Modifier.height(16.dp))
+Text("Minhas Fotos", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+Spacer(modifier = Modifier.height(8.dp))
+if (myPostsList.isNotEmpty()) {
+NetImage(myPostsList.first().imageUrl, modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(8.dp)))
 }
 }
 }
+}
+// Modal de comentários nas suas fotos
+commentMyPostModalId?.let { myPostId ->
+val activeMyPost = myPostsList.firstOrNull { it.id == myPostId }
+activeMyPost?.let { post ->
+AlertDialog(
+onDismissRequest = { commentMyPostModalId = null },
+title = { Text("Comentários na Sua Foto") },
+text = {
+Column {
+LazyColumn(modifier = Modifier.height(180.dp)) {
+items(post.comments) { c ->
+Text("${c.author}: ${c.text}", color = Color.Black, modifier = Modifier.padding(vertical = 4.dp), fontWeight = FontWeight.SemiBold)
+}
+}
+Row {
+TextField(value = typedCommentText, onValueChange = { typedCommentText = it }, placeholder = { Text("Responder...") }, modifier = Modifier.weight(1f))
+Button(onClick = {
+if (typedCommentText.isNotBlank()) {
+post.comments.add(CommentItem(myHandle, typedCommentText))
+typedCommentText = ""
+}
+}) { Text("Mandar") }
+}
+}
+},
+confirmButton = { TextButton(onClick = { commentMyPostModalId = null }) { Text("Fechar") } }
+)
+}
+}
+// Modal comum de comentários nos posts alheios
 commentModalPostId?.let { postId ->
 val activePost = posts.firstOrNull { it.id == postId }
 activePost?.let { post ->
