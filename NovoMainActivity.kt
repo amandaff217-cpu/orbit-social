@@ -48,8 +48,9 @@ data class IaCharacter(
     val handle: String,
     val bio: String,
     val avatarUrl: String,
+    val profilePicUrl: String,
     val country: String,
-    val ethnicity: String,
+    val age: Int,
     var relationshipLevel: Int = 0,
     var isFollowingMe: Boolean = false
 )
@@ -74,36 +75,52 @@ data class DirectMessage(
     val attachedImageUrl: String? = null
 )
 
+// Gerador Otimizado com Modelos Reais e Evitando Nomes Repetidos
 object AiWorldGenerator {
-    private val firstNames = listOf("Yuki", "Kofi", "Aanya", "Mateo", "Zuri", "Chloe", "Hans", "Ji-Woo", "Svetlana", "Aisha", "Pedro", "Amara", "Mei", "Liam", "Elena", "Tariq")
-    private val lastNames = listOf("Tanaka", "Mensah", "Sharma", "Rodriguez", "Okoro", "Smith", "Müller", "Kim", "Ivanova", "Diallo", "Silva", "Diop", "Chen", "Johnson", "García", "Khan")
-    private val countries = listOf("Japão 🇯🇵", "Gana 🇬🇭", "Índia 🇮🇳", "México 🇲🇽", "Nigéria 🇳🇬", "EUA 🇺🇸", "Alemanha 🇩🇪", "Coreia do Sul 🇰🇷", "Rússia 🇷🇺", "Senegal 🇸🇳", "Brasil 🇧🇷", "França 🇫🇷", "China 🇨🇳")
-    private val bios = listOf("Model & Creator ✨ Travel lover", "Living life one photo at a time 🌌", "Singer/Songwriter 🎸 Stream my single!", "Fitness & Health Coach 🧘‍♂️", "Digital art & tech 🦾", "Actor based in the city 🎬")
-    private val avatarIds = listOf(1025, 1012, 1062, 1084, 153, 177, 237, 338, 342, 365, 433, 447, 524, 532, 538, 646)
+    private val firstNames = mutableListOf("Yuki", "Kofi", "Aanya", "Mateo", "Zuri", "Chloe", "Hans", "Ji-Woo", "Svetlana", "Aisha", "Pedro", "Amara", "Mei", "Liam", "Elena", "Tariq", "Malik", "Kiara", "Sora", "Dante", "Naomi", "Alessia", "Omar")
+    private val lastNames = mutableListOf("Tanaka", "Mensah", "Sharma", "Rodriguez", "Okoro", "Smith", "Müller", "Kim", "Ivanova", "Diallo", "Silva", "Diop", "Chen", "Johnson", "García", "Khan", "Russo", "Park", "Washington")
+    private val countries = listOf("Japão", "Gana", "Índia", "México", "Nigéria", "Estados Unidos", "Alemanha", "Coreia do Sul", "Rússia", "Senegal", "Brasil", "França", "China", "Itália")
+    private val bios = listOf("International Model ✨ Fashion & Travel", "Living life couture 🌌 Creator", "Artist & Songwriter 🎸 Booking via DM", "Fitness lifestyle and high fashion 🧘", "Digital creator & creative director 🦾", "Actor & Dreamer 🎬 Catwalk enthusiast")
+    
+    // Links diretos e estáveis do Unsplash focando em retratos estéticos de modelos profissionais masculinos e femininos de várias etnias
+    private val modelImages = listOf(
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com",
+        "https://unsplash.com"
+    )
 
     fun createRandomCharacter(): IaCharacter {
-        val fName = firstNames.random()
-        val lName = lastNames.random()
-        val randomId = avatarIds.random() + (1..50).random()
+        val fName = if (firstNames.isNotEmpty()) firstNames.removeAt((0 until firstNames.size).random()) else "Model_${UUID.randomUUID().toString().take(4)}"
+        val lName = if (lastNames.isNotEmpty()) lastNames.removeAt((0 until lastNames.size).random()) else "Agency"
+        val imgUrl = modelImages.random()
         return IaCharacter(
             name = "$fName $lName",
             handle = "@${fName.lowercase()}.${lName.lowercase()}",
             bio = bios.random(),
-            avatarUrl = "https://picsum.photos{randomId % 1000}/150/150",
+            avatarUrl = imgUrl,
+            profilePicUrl = imgUrl,
             country = countries.random(),
-            ethnicity = "Diversa"
+            age = (21..35).random()
         )
     }
 
     fun createPostForCharacter(char: IaCharacter): SocialPost {
-        val imageId = (100..900).random()
         return SocialPost(
             character = char,
-            location = char.country,
-            caption = "Exploring the beauty of life! 🪐✨ #vibes",
-            imageUrl = "https://picsum.photosimageId/500/500",
-            likes = (100..50000).random(),
-            comments = mutableListOf(CommentItem("@system.orbit", "Incrível! 🔥"))
+            location = "${char.country}, Model Shoot",
+            caption = "Fresh portfolio update 🪐✨ Loving this aesthetic.",
+            imageUrl = char.profilePicUrl,
+            likes = (1500..95000).random(),
+            comments = mutableListOf(CommentItem("@orbit.scout", "Stunning work! 🔥"))
         )
     }
 }
@@ -140,7 +157,7 @@ fun OrbitSocialApp() {
     var followersList by remember { mutableStateOf(mutableListOf<IaCharacter>()) }
     var viewListType by remember { mutableStateOf("") } 
 
-    var infiniteDiscoverList by remember { mutableStateOf(List(15) { AiWorldGenerator.createRandomCharacter() }) }
+    var infiniteDiscoverList by remember { mutableStateOf(List(12) { AiWorldGenerator.createRandomCharacter() }) }
     var posts by remember { mutableStateOf(infiniteDiscoverList.take(6).map { AiWorldGenerator.createPostForCharacter(it) }) }
 
     var commentModalPostId by remember { mutableStateOf<String?>(null) }
@@ -150,12 +167,17 @@ fun OrbitSocialApp() {
     var chatMessagesMap by remember { mutableStateOf(mapOf<String, List<DirectMessage>>()) }
     var currentTypedMessage by remember { mutableStateOf("") }
 
+    // Estado para controlar a visualização do perfil detalhado de um criador de IA
+    var selectedProfileCharacter by remember { mutableStateOf<IaCharacter?>(null) }
+
     LaunchedEffect(Unit) {
         while (true) {
             delay(12000)
-            if ((1..100).random() > 40) {
-                val newFan = AiWorldGenerator.createRandomCharacter().copy(isFollowingMe = true)
-                followersList.add(newFan)
+            if ((1..100).random() > 40 && infiniteDiscoverList.isNotEmpty()) {
+                val newFan = infiniteDiscoverList.random().copy(isFollowingMe = true)
+                if (followersList.none { it.id == newFan.id }) {
+                    followersList.add(newFan)
+                }
             }
         }
     }
@@ -163,43 +185,89 @@ fun OrbitSocialApp() {
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = Night, modifier = Modifier.border(0.5.dp, BorderColor, RoundedCornerShape(0.dp))) {
-                NavigationBarItem(selected = tab == "Feed", onClick = { tab = "Feed"; viewListType = "" }, icon = { Icon(Icons.Default.Home, null, tint = Color.White) }, label = { Text("Feed", color = Color.White, fontSize = 10.sp) })
-                NavigationBarItem(selected = tab == "Explorar", onClick = { tab = "Explorar"; viewListType = "" }, icon = { Icon(Icons.Default.Search, null, tint = Color.White) }, label = { Text("Descobrir", color = Color.White, fontSize = 10.sp) })
-                NavigationBarItem(selected = tab == "Mensagens", onClick = { tab = "Mensagens"; viewListType = "" }, icon = { Icon(Icons.Default.MailOutline, null, tint = Color.White) }, label = { Text("DMs", color = Color.White, fontSize = 10.sp) })
-                NavigationBarItem(selected = tab == "Perfil", onClick = { tab = "Perfil"; viewListType = "" }, icon = { Icon(Icons.Default.Person, null, tint = Color.White) }, label = { Text("Perfil", color = Color.White, fontSize = 10.sp) })
+                NavigationBarItem(selected = tab == "Feed", onClick = { tab = "Feed"; viewListType = ""; selectedProfileCharacter = null }, icon = { Icon(Icons.Default.Home, null, tint = Color.White) }, label = { Text("Feed", color = Color.White, fontSize = 10.sp) })
+                NavigationBarItem(selected = tab == "Explorar", onClick = { tab = "Explorar"; viewListType = ""; selectedProfileCharacter = null }, icon = { Icon(Icons.Default.Search, null, tint = Color.White) }, label = { Text("Descobrir", color = Color.White, fontSize = 10.sp) })
+                NavigationBarItem(selected = tab == "Mensagens", onClick = { tab = "Mensagens"; viewListType = ""; selectedProfileCharacter = null }, icon = { Icon(Icons.Default.MailOutline, null, tint = Color.White) }, label = { Text("DMs", color = Color.White, fontSize = 10.sp) })
+                NavigationBarItem(selected = tab == "Perfil", onClick = { tab = "Perfil"; viewListType = ""; selectedProfileCharacter = null }, icon = { Icon(Icons.Default.Person, null, tint = Color.White) }, label = { Text("Perfil", color = Color.White, fontSize = 10.sp) })
             }
         },
         containerColor = Night
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues).fillMaxSize().background(Night)) {
             
-            if (viewListType.isNotEmpty()) {
-                val activeList = if (viewListType == "Seguidores") followersList else followingList
-                Column(modifier = Modifier.fillMaxSize().background(Night).padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { viewListType = "" }) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) }
-                        Text(viewListType, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
-                    LazyColumn {
-                        items(activeList) { item ->
-                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                NetImage(item.avatarUrl, modifier = Modifier.size(44.dp).clip(CircleShape))
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.name, color = Color.White, fontWeight = FontWeight.Bold)
-                                    Text(item.country, color = Muted, fontSize = 12.sp)
-                                }
-                                Button(
-                                    onClick = {
-                                        if (viewListType == "Seguindo") {
-                                            followingList.remove(item)
-                                        } else {
-                                            followersList.remove(item)
-                                        }
-                                        viewListType = viewListType 
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BorderColor)
-                                ) {
+            // Visualização de Perfil de Outro Personagem (Mecânica solicitada)
+            if (selectedProfileCharacter != null) {
+                val char = selectedProfileCharacter!!
+val isFollowing = followingList.any { it.id == char.id }
+Column(modifier = Modifier.fillMaxSize().background(Night).padding(16.dp)) {
+Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+IconButton(onClick = { selectedProfileCharacter = null }) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) }
+Text(char.handle, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+}
+Spacer(modifier = Modifier.height(16.dp))
+Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+NetImage(char.avatarUrl, modifier = Modifier.size(80.dp).clip(CircleShape).border(1.5.dp, BorderColor, CircleShape))
+Spacer(modifier = Modifier.width(24.dp))
+Column {
+Text("${char.age} anos", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+Text(char.country, color = Muted, fontSize = 13.sp)
+}
+}
+Spacer(modifier = Modifier.height(12.dp))
+Text(char.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+Text(char.bio, color = Color.White, fontSize = 14.sp)
+Spacer(modifier = Modifier.height(16.dp))
+Row(modifier = Modifier.fillMaxWidth()) {
+Button(
+onClick = {
+if (isFollowing) followingList.remove(char) else followingList.add(char)
+},
+modifier = Modifier.weight(1f),
+colors = ButtonDefaults.buttonColors(containerColor = if (isFollowing) BorderColor else AccentBlue)
+) {
+Text(if (isFollowing) "Seguindo" else "Seguir", color = Color.White)
+}
+Spacer(modifier = Modifier.width(8.dp))
+Button(
+onClick = {
+if (!isFollowing) followingList.add(char)
+tab = "Mensagens"
+activeChatCharacterId = char.id
+selectedProfileCharacter = null
+},
+modifier = Modifier.weight(1f),
+colors = ButtonDefaults.buttonColors(containerColor = Panel)
+) {
+Text("Mensagem", color = Color.White)
+}
+}
+Spacer(modifier = Modifier.height(16.dp))
+Text("Publicações", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+Spacer(modifier = Modifier.height(8.dp))
+NetImage(char.profilePicUrl, modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(8.dp)))
+}
+} else if (viewListType.isNotEmpty()) {
+val activeList = if (viewListType == "Seguidores") followersList else followingList
+Column(modifier = Modifier.fillMaxSize().background(Night).padding(16.dp)) {
+Row(verticalAlignment = Alignment.CenterVertically) {
+IconButton(onClick = { viewListType = "" }) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) }
+Text(viewListType, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+}
+LazyColumn {
+items(activeList) { item ->
+Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+NetImage(item.avatarUrl, modifier = Modifier.size(44.dp).clip(CircleShape).clickable { selectedProfileCharacter = item })
+Spacer(modifier = Modifier.width(12.dp))
+Column(modifier = Modifier.weight(1f).clickable { selectedProfileCharacter = item }) {
+Text(item.name, color = Color.White, fontWeight = FontWeight.Bold)
+Text("${item.age} anos • ${item.country}", color = Muted, fontSize = 12.sp)
+}
+Button(
+onClick = {
+if (viewListType == "Seguindo") followingList.remove(item) else followersList.remove(item)
+},
+colors = ButtonDefaults.buttonColors(containerColor = BorderColor)
+) {
 Text("Remover", color = Color.White, fontSize = 12.sp)
 }
 }
@@ -218,7 +286,7 @@ Icon(Icons.Default.FavoriteBorder, null, tint = Color.White)
 item {
 LazyRow(modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)) {
 items(followingList) { char ->
-Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 6.dp)) {
+Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 6.dp).clickable { selectedProfileCharacter = char }) {
 Box(modifier = Modifier.size(64.dp).clip(CircleShape).background(StoryGradient).padding(2.dp)) {
 NetImage(char.avatarUrl, modifier = Modifier.fillMaxSize().clip(CircleShape))
 }
@@ -229,12 +297,12 @@ Text(char.name.split(" ").firstOrNull() ?: "", color = Color.White, fontSize = 1
 }
 items(posts) { post ->
 Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
-Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+Row(modifier = Modifier.padding(8.dp).clickable { selectedProfileCharacter = post.character }, verticalAlignment = Alignment.CenterVertically) {
 NetImage(post.character.avatarUrl, modifier = Modifier.size(36.dp).clip(CircleShape))
 Spacer(modifier = Modifier.width(10.dp))
 Column {
 Text(post.character.name, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-Text(post.location, color = Muted, fontSize = 11.sp)
+Text("${post.character.age} anos • ${post.location}", color = Muted, fontSize = 11.sp)
 }
 }
 NetImage(post.imageUrl, modifier = Modifier.fillMaxWidth().height(360.dp))
@@ -259,9 +327,9 @@ Text("Ver todos os ${post.comments.size} comentários", color = Muted, fontSize 
 "Explorar" -> LazyColumn(modifier = Modifier.fillMaxSize().padding(12.dp)) {
 item {
 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-Text("Descobrir Pessoas Globais", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+Text("Descobrir Modelos Globais", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
 Text("Mais 🔄", color = AccentBlue, modifier = Modifier.clickable {
-infiniteDiscoverList = List(15) { AiWorldGenerator.createRandomCharacter() }
+infiniteDiscoverList = List(12) { AiWorldGenerator.createRandomCharacter() }
 })
 }
 Spacer(modifier = Modifier.height(12.dp))
@@ -269,11 +337,11 @@ Spacer(modifier = Modifier.height(12.dp))
 items(infiniteDiscoverList) { char ->
 val isFollowing = followingList.any { it.id == char.id }
 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).background(Panel, RoundedCornerShape(8.dp)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-NetImage(char.avatarUrl, modifier = Modifier.size(50.dp).clip(CircleShape))
+NetImage(char.avatarUrl, modifier = Modifier.size(50.dp).clip(CircleShape).clickable { selectedProfileCharacter = char })
 Spacer(modifier = Modifier.width(12.dp))
-Column(modifier = Modifier.weight(1f)) {
+Column(modifier = Modifier.weight(1f).clickable { selectedProfileCharacter = char }) {
 Text(char.name, color = Color.White, fontWeight = FontWeight.Bold)
-Text("${char.handle} • ${char.country}", color = Muted, fontSize = 12.sp)
+Text("${char.handle} • ${char.age} anos", color = Muted, fontSize = 12.sp)
 Text(char.bio, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 Button(
@@ -314,7 +382,7 @@ val activeChar = followingList.firstOrNull { it.id == targetId }
 val currentMessages = chatMessagesMap[targetId] ?: listOf(DirectMessage(senderIsMe = false, text = "Opa! Tudo bem? Vi seu perfil."))
 activeChar?.let { char ->
 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-Text(char.name, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(12.dp))
+Text(char.name, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(12.dp).clickable { selectedProfileCharacter = char })
 LazyColumn(modifier = Modifier.weight(1f).padding(8.dp)) {
 items(currentMessages) { msg ->
 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = if (msg.senderIsMe) Alignment.CenterEnd else Alignment.CenterStart) {
@@ -341,9 +409,9 @@ delay(2000)
 val finalLevel = (char.relationshipLevel + 1).coerceAtMost(3)
 char.relationshipLevel = finalLevel
 val reply = when(finalLevel) {
-2 -> DirectMessage(senderIsMe = false, text = "Nossa, adorei conversar contigo! Olha essa foto!", attachedImageUrl = char.avatarUrl)
-3 -> DirectMessage(senderIsMe = false, text = "Ficando sério! ❤️ Olha meu look!", attachedImageUrl = "picsum.photos")
-else -> DirectMessage(senderIsMe = false, text = "Que massa! Curti!")
+2 -> DirectMessage(senderIsMe = false, text = "Nossa, adorei conversar contigo! Olha essa foto recente que fiz!", attachedImageUrl = char.avatarUrl)
+3 -> DirectMessage(senderIsMe = false, text = "Estou gostando muito de você... ❤️ Olha meu look exclusivo!", attachedImageUrl = char.profilePicUrl)
+else -> DirectMessage(senderIsMe = false, text = "Que incrível! Adoro trocar ideias.")
 }
 chatMessagesMap = chatMessagesMap + (targetId to (combined + reply))
 }
@@ -353,7 +421,7 @@ chatMessagesMap = chatMessagesMap + (targetId to (combined + reply))
 }
 }
 } ?: Box(modifier = Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-Text("Selecione alguém que você segue para conversar", color = Muted, fontSize = 13.sp)
+Text("Selecione alguém para conversar", color = Muted, fontSize = 13.sp)
 }
 }
 "Perfil" -> Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
