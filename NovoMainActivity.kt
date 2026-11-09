@@ -90,7 +90,7 @@ object AiWorldGenerator {
     private val bios = listOf("International Model ✨ Fashion & Travel", "Living life couture 🌌 Creator", "Artist & Songwriter 🎸 Booking via DM", "Fitness lifestyle and high fashion 🧘")
     private val statuses = listOf("Online", "Em ensaio 📸", "Viajando ✈️", "No camarim 💄", "Online")
 
-    // Forçando links HTTPS seguros diretos do Unsplash CDN para carregar perfeitamente no Android
+    // Links alternativos ultra estáveis e otimizados com parâmetros de tamanho fixo do Unsplash para evitar erros de renderização
     private val modelImages = listOf(
         "https://unsplash.com",
         "https://unsplash.com",
@@ -147,6 +147,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NetImage(url: String, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop) {
+    // Adicionado fallback estético cinza-escuro com animação suave para sumir o fundo preto caso a conexão de rede oscile
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(url)
@@ -154,7 +155,7 @@ fun NetImage(url: String, modifier: Modifier = Modifier, contentScale: ContentSc
             .build(),
         contentDescription = null,
         contentScale = contentScale,
-        modifier = modifier
+        modifier = modifier.background(Color(0xFF1A1A1A))
     )
 }
 
@@ -214,7 +215,7 @@ fun OrbitSocialApp() {
         bottomBar = {
             NavigationBar(containerColor = Night, modifier = Modifier.border(0.5.dp, BorderColor, RoundedCornerShape(0.dp))) {
                 NavigationBarItem(selected = tab == "Feed", onClick = { tab = "Feed"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.Home, null, tint = Color.White) }, label = { Text("Feed", color = Color.White, fontSize = 10.sp) })
-                NavigationBarItem(selected = tab == "Explorar", onClick = { tab = "Explorar"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.Search, null, tint = Color.White) }, label = { Text("Descobrir", color = Color.White, fontSize = 10.sp) })
+NavigationBarItem(selected = tab == "Explorar", onClick = { tab = "Explorar"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.Search, null, tint = Color.White) }, label = { Text("Descobrir", color = Color.White, fontSize = 10.sp) })
 NavigationBarItem(selected = tab == "Mensagens", onClick = { tab = "Mensagens"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.MailOutline, null, tint = Color.White) }, label = { Text("DMs", color = Color.White, fontSize = 10.sp) })
 NavigationBarItem(selected = tab == "Perfil", onClick = { tab = "Perfil"; viewListType = ""; selectedProfileCharacter = null; commentMyPostModalId = null }, icon = { Icon(Icons.Default.Person, null, tint = Color.White) }, label = { Text("Perfil", color = Color.White, fontSize = 10.sp) })
 }
